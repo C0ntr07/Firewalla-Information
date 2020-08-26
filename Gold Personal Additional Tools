@@ -40,8 +40,6 @@ sudo updatedb
 # Core 2:       +34.0°C  (high = +90.0°C, crit = +90.0°C)
 # Core 3:       +37.0°C  (high = +90.0°C, crit = +90.0°C)
 # 
-
-
 sudo apt install lm-sensors
 sensors
 
