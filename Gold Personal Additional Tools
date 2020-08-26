@@ -7,6 +7,28 @@ sudo updatedb
 
 
 #
+# Add tools to report on CPU temperature
+#
+# Typical results
+# 
+# pi@firewalla:~$ sensors
+# acpitz-virtual-0
+# Adapter: Virtual device
+# temp1:        +43.0°C  (crit = +127.0°C)
+# temp2:        +26.8°C  (crit = +95.0°C)
+# 
+# coretemp-isa-0000
+# Adapter: ISA adapter
+# Core 0:       +48.0°C  (high = +90.0°C, crit = +90.0°C)
+# Core 1:       +48.0°C  (high = +90.0°C, crit = +90.0°C)
+# Core 2:       +49.0°C  (high = +90.0°C, crit = +90.0°C)
+# Core 3:       +51.0°C  (high = +90.0°C, crit = +90.0°C)
+# 
+sudo apt install lm-sensors
+sensors
+
+
+#
 # Install wireless tools
 #
 sudo apt install wireless-tools
