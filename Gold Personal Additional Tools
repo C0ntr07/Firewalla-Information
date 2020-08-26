@@ -1,1 +1,64 @@
-# A list of the additional tools installed for impoved experience
+# A list of the additional tools installed for impoved experience and to enable the preferred across boots
+
+#
+# Update the locate database
+#
+sudo updatedb
+
+
+#
+# Install wireless tools
+#
+sudo apt install wireless-tools
+
+
+#
+# Mount the SATA SSD
+#
+mkdir /sata-drive
+sudo mount /dev/sda1 sata-drive
+
+
+#
+# Setup DDNS
+#
+sudo apt install ddclient -y
+sudo ddclient -daemon=86400 -protocol=dyndns2 -use=web -web=checkpi.dyndns.com, web-skip='IP Address' -server=members.dyndns.org -login=LOGINUSERNAME -password='LOGINPASSWORD' -proxy=URLPROXYTOBEUPDATED
+tab
+enter
+USERID
+tab
+enter
+PASSWORD
+tab
+enter
+PASSWORD
+tab
+enter
+enter
+tab
+enter
+down
+space
+tab
+enter
+enter
+
+
+# https://www.intel.com/content/www/us/en/support/articles/000005511/network-and-i-o/wireless.html
+# Get the intel drivers
+wget https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-7260-ucode-25.30.13.0.tgz
+tar zxvf iwlwifi-7260-ucode-25.30.13.0.tgz
+
+#!/bin/bash
+sudo apt install wireless-tools
+# sudo nano /etc/netplan/50-cloud-init.yaml
+# https://medium.com/@arnab.k/ubuntu-how-to-setup-a-wi-fi-hotspot-access-point-mode-192cbb2eeb90
+# sudo apt install iw
+sudo apt install hostapd
+sudo echo -e  'interface=wlan0\ndriver=nl80211\nssid="Firewalla Gold WiFi"\nhw_mode=g\nchannel=1\nmacaddr_acl=0\nauth_algs=1\nignore_broadcast_ssid=0\nwpa=3\nwpa_passphrase=30404ce58f\nwpa_key_mgmt=WPA-PSK\nwpa_pairwise=TKIP\nrsn_pairwise=CCMP' | sudo tee /etc/hostapd/hostapd.conf
+sudo sed -i 's/\#DAEMON_CONF\=\"/DAEMON_CONF\=\"\/etc\/hostapd\/hostapd\.conf/' "/etc/default/hostapd"
+sudo systemctl unmask hostapd
+sudo systemctl enable hostapd
+sudo service hostapd start
+sudo brctl addif br0 wlan0
