@@ -100,3 +100,91 @@ sudo systemctl unmask hostapd
 sudo systemctl enable hostapd
 sudo service hostapd start
 sudo brctl addif br0 wlan0
+
+# 
+# setup PiHole
+#
+cat << EOF >> /home/pi/.firewalla/run/docker/pi-hole/docker-compose.yaml
+
+version: "3"
+
+# More info at https://github.com/pi-hole/docker-pi-hole/ and https://docs.pi-hole.net/
+services:
+  pihole:
+    container_name: pihole
+    image: pihole/pihole:v5.1.2
+    environment:
+      # set a secure password here or the default will be firewalla
+      WEBPASSWORD: 'firewalla'
+    # Volumes store your data between container upgrades
+    volumes:
+      - '/data/pi-hole/etc-pihole/:/etc/pihole/'
+      - './etc-dnsmasq.d/:/etc/dnsmasq.d/'
+      - '/etc/localtime:/etc/localtime:ro'
+    restart: unless-stopped
+    networks:
+      default:
+        # static IP address for pi-hole
+        ipv4_address: 172.16.0.2
+
+networks:
+  default:
+    driver: bridge
+    ipam:
+     config:
+       # your chosen docker network here
+       - subnet: 172.16.0.0/24
+EOF
+cat << EOF >> /home/pi/tools/PiHoleSetup.sh
+cd /home/pi/.firewalla/run/docker/pi-hole
+sudo systemctl start docker
+sudo docker-compose pull
+sudo docker-compose up --no-start
+sudo ip route add 172.16.0.0/24 dev br-$(sudo docker network inspect pi-hole_default |jq -r '.[0].Id[0:12]') table lan_routable
+sudo ip route add 172.16.0.0/24 dev br-$(sudo docker network inspect pi-hole_default |jq -r '.[0].Id[0:12]') table wan_routable
+sudo docker-compose up --detach
+EOF
+
+cd /home/pi/tools/
+sudo chmod 777 PiHoleSetup.sh
+sudo mkdir /home/pi/.firewalla/config/post_main.d
+#
+# Set Pi-hole as DNS for your network.
+# Now proceed to the network settings on Firewalla App, assign 172.16.0.2 as the primary DNS server for the networks that you want to enable Pi-Hole.
+#
+# Tap on Network Button
+# Tap on the Top right edit button
+# Tap on the LAN segment you want to change DNS to pi-hole
+# Scroll down and change the primary DNS to 172.16.0.2
+# Save and you should be able to see DNS requests coming up in the management console.
+#
+
+#
+# Persisting The Configuration
+#
+cat <<EOF>> /home/pi/.firewalla/config/post_main.d/start_pi_hole.sh
+sudo systemctl start docker
+sudo ipset create -! docker_lan_routable_net_set hash:net
+sudo ipset add -! docker_lan_routable_net_set 172.16.0.0/24
+sudo ipset create -! docker_wan_routable_net_set hash:net
+sudo ipset add -! docker_wan_routable_net_set 172.16.0.0/24
+sudo systemctl start docker-compose@pi-hole
+EOF
+
+
+# Add "MAXDBDAYS=90" in /data/pi-hole/etc-pihole/pihole-FTL.conf and restart the container.
+echo "MAXDBDAYS=90" >> /data/pi-hole/etc-pihole/pihole-FTL.conf
+# to put the databas in a new location
+DBFILE=/etc/pihole/pihole-FTL.db
+
+sudo systemctl restart docker-compose@pi-hole
+
+#
+# To restart the docker service 
+# sudo systemctl restart docker-compose@pi-hole
+#
+
+#
+
+
+
