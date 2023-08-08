@@ -1,0 +1,80 @@
+How to use an SD card as external storage in Firewalla Purple
+
+Prepare partition and file system on a new SD card
+
+NOTES:
+
+    If you have an SD card with existing data on it, you can bypass this preparation part and go to the Mount SD card partition part directly.
+    Insert SD Card with the gold tips facing up.
+    Only support micro size SD card, class 10 or above recommended
+
+Identify SD card
+
+After plugging the SD card into the slot on Firewalla Purple, check to see if it is detected by the system, where it should be recognized as "/dev/mmcblk1".
+
+For example,
+
+$ sudo fdisk -l /dev/mmcblk1
+Disk /dev/mmcblk1: 7.51 GiB, 8053063680 bytes, 15728640 sectors
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disklabel type: dos
+Disk identifier: 0xf50c8845
+
+Create partition and file system
+
+There are different needs to use an SD card as external storage in Firewalla.
+
+- To increase available external storage space in Firewalla, we can use a Linux file system like "ext4".
+
+# copy and paste following 4 commands
+sudo parted -s /dev/mmcblk1 mklabel gpt
+sudo parted -s /dev/mmcblk1 mkpart primary ext4 2 100%
+sudo parted -s /dev/mmcblk1 align-check optimal 1
+sudo mkfs.ext4 /dev/mmcblk1p1
+
+- To share files between Firewalla and other systems(like Windows, Mac, Mobile device), we need to use a more compatible file system like "fat32".
+
+# copy and paste following 5 commands
+sudo parted -s /dev/mmcblk1 mklabel gpt
+sudo parted -s /dev/mmcblk1 mkpart primary fat32 2 100%
+sudo parted -s /dev/mmcblk1 align-check optimal 1
+\sudo apt install -y dosfstools
+sudo mkfs.vfat -F 32 /dev/mmcblk1p1
+
+Mount SD card partition
+
+For SD card prepared from the above steps, just mount "/dev/mmcblk1p1"
+
+sudo mount /dev/mmcblk1p1 /mnt/
+
+To do a quick check, 
+
+mount | grep /mnt
+df -h /mnt
+
+NOTE1: If your SD card has existing data with multiple partitions, you would need to have some idea about the existing partition structure, and pick the right partition(/dev/mmcblk1p?) to mount.
+
+$ sudo fdisk -l /dev/mmcblk1
+
+NOTE2: With default mount options, "/mnt" is owned and only writable by root, to enable user `pi` to write to it, please mount "/mnt" with the uid/gid of user `pi`(1000).
+
+For example if you used fat32,
+
+sudo mount /dev/mmcblk1p1 /mnt -o rw,uid=1000,gid=1000
+
+if you used ext4,
+
+sudo mount /dev/mmcblk1p1 /mnt
+sudo chown 1000:1000 /mnt
+
+NOTE3: Be noted that this mount is just temporary. To make it permanent upon reboot, you can add the mount command to the shell startup file as needed
+
+echo "sudo mount /dev/mmcblk1p1 /mnt" >> ~/.bashrc
+# - OR -
+echo "sudo mount /dev/mmcblk1p1 /mnt -o rw,uid=1000,gid=1000" >> ~/.bashrc
+
+WARN: Always do un-mount before un-plug the SD card to avoid potential data corruption.
+
+sudo umount -R /mnt
